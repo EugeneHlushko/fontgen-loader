@@ -2,6 +2,7 @@ var loaderUtils = require("loader-utils");
 var fontgen = require("webfonts-generator");
 var path = require("path");
 var glob = require('glob');
+var Module = require('module');
 
 var mimeTypes = {
     'eot': 'application/vnd.ms-fontobject',
@@ -9,6 +10,22 @@ var mimeTypes = {
     'ttf': 'application/x-font-ttf',
     'woff': 'application/font-woff'
 };
+
+var parentModule = module;
+// copied from https://github.com/webpack-contrib/postcss-loader/blob/master/src/utils.js#L19
+function exec(code, loaderContext) {
+    var resource = loaderContext.resource;
+    var context = loaderContext.context;
+
+    var module = new Module(resource, parentModule);
+
+    module.paths = Module._nodeModulePaths(context);
+    module.filename = resource;
+
+    module._compile(code, resource);
+
+    return module.exports;
+}
 
 function absolute(from, to) {
     if (arguments.length < 2) {
@@ -66,7 +83,7 @@ module.exports = function (content) {
         config = JSON.parse(content);
     }
     catch (ex) {
-        config = this.exec(content, this.resourcePath);
+        config = exec(content, this);
     }
 
     config.__dirname = path.dirname(this.resourcePath);
